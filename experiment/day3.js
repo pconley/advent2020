@@ -4,8 +4,6 @@ const assert = require('assert');
 const colors = require('colors');
 const Combinatorics = require('js-combinatorics');
 
-// _.range( start, end, step )
-
 // ************************************************************************
 //
 // ************************************************************************
@@ -34,7 +32,6 @@ const [node, pgm, filename] = process.argv;
 // ************************************************************************
 
 const readfile = (fname) => {
-  console.log(filename);
   log.info("filename =", fname.bold);
   return fs
     .readFileSync(fname, 'utf8')
@@ -46,69 +43,35 @@ const { count } = require('console');
 const prod = arr => arr.reduce((a,b) => a * b, 1);
 
 // ************************************************************************
-//
+// Mainline
 // ************************************************************************
 
-function iterate(n, slope) {
+console.log('Day Three'.cyan);
 
-  console.log(`\nITERATION: ${n}`, slope,'\n');
+const rows = readfile(filename);
+const width = rows[0].length;
+log.info(`rows = ${rows.length} rows x ${width} cols`);
 
-  _.range( 0, 32 ).forEach(i => console.log(i))
+let solution = 1;
+const slopes = [{r: 1, d: 1},{r: 3, d: 1},{r: 5, d: 1},{r: 7, d: 1},{r: 1, d: 2}]
 
+slopes.forEach((slope,s) => {
   let count = 0;
+
   pos = {x: -slope.r, y: -slope.d};
   while ( pos.y + 1 < rows.length ) {
     pos.x += slope.r; // right
     pos.y += slope.d; // down
     const { x, y } = pos;
     const _x = x % width;
-    log.trace(count, _x, y, rows[y][_x], rows[y])
+    log.trace(_x, y, rows[y][_x], rows[y])
     if( rows[y][_x] === '#' ) count += 1;
   }
-  console.log(`\ncount = ${count}`);
-  return count;
-}
+  
+  log.info(`count= ${count} for`, slope);
+  solution *= count;
+})
 
-// ************************************************************************
-//
-// ************************************************************************
+console.log("solution = ", solution);
 
-let solution = 1;
-let iteration = 0;
-
-const slopes = [{r: 1, d: 1},{r: 3, d: 1},{r: 5, d: 1},{r: 7, d: 1},{r: 1, d: 2}]
-
-const readline = require('readline');
-readline.emitKeypressEvents(process.stdin);
-// process.stdin.setRawMode(true);
-process.stdin.on('keypress', (str, key) => {
-  if (key.name === 'escape') {
-    console.log(`escaped solution = ${solution}`);
-    process.exit();
-  }
-
-  console.clear();
-  console.log('Experiment'.cyan);
-
-  solution *= iterate(iteration, slopes[iteration]);
-
-  if (iteration == slopes.length-1) {
-    console.log(`final solution = ${solution}`);
-    process.exit(); 
-  } else {
-    iteration += 1;
-    console.log(`intermediate solution = ${solution}`);
-    console.log(`perform next iteration...`);  }
-});
-
-console.clear();
-console.log('Experiment'.cyan);
-
-const rows = readfile(filename);
-const width = rows[0].length;
-log.info(`rows = ${rows.length} rows x ${width} cols`);
-
-console.log(`press key to start iterations`);
-
-
-
+assert(solution, 3952146825);
