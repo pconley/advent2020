@@ -19,43 +19,36 @@ const reader = (filename) => {
     return lines.map(line => {
         const [op, str] = line.split(" ");
         const arg = parseInt(str);
-        return {op, arg, visited: false}
+        return {op, arg}
     });
 }
 
-const exec = (_pgm) => {
-    let cnt = 0;
-    let acc = 0;
-    let pos = 0;
-    const pgm = _.cloneDeep(_pgm);
+const NOP = 'nop';
+const JMP = 'jmp';
+const ACC = 'acc';
+
+const nop = (arg, {acc, pos}) => ({acc, pos: pos+1});
+const jmp = (arg, {acc, pos}) => ({acc, pos: pos+arg});
+const acc = (arg, {acc, pos}) => ({acc: acc+arg, pos: pos+1});
+
+const actions = {nop, acc, jmp};
+
+const exec = (pgm) => {
+    let state = { pos: 0, acc: 0 };
     const pgmlen = pgm.length;
-    while( pgm[pos].visited == false ) {
-        const { op, arg } = pgm[pos];
-        pgm[pos].visited = true;
-        switch (op) {
-            case 'nop':
-                pos += 1;
-                break;
-            case 'acc':
-                pos += 1;
-                acc += arg;
-                break;
-            case 'jmp':
-                pos += arg;
-                break;
-            default:
-                throw `pgm exec error at ${pos} op=${op}`;
+    const visited = new Array(pgmlen).fill(false);
+    while( visited[state.pos] === false ) {
+        visited[state.pos] = true;
+        const { op, arg } = pgm[state.pos];
+        state = actions[op](arg, state);
+        if (state.pos == pgmlen) {
+            // true... the program reached end
+            return [true, state.acc];
         }
-        // console.log(`after ${cnt}: [${pos}] :: ${op}, ${arg} => acc=${acc}, pos=${pos}`);
-        if (pos == pgmlen) {
-            // true... the prgm finished
-            return [true, acc];
-        }
-        pos = pos % pgmlen;
-        cnt += 1;
+        state.pos %= pgmlen;
     }
     // false... did not finish execution
-    return [false, acc];
+    return [false, state.acc];
 }
 
 //*************************************************************************************
@@ -66,23 +59,28 @@ const [_node, _pgm, filename] = process.argv;
 
 console.log('Day 8'.cyan);
 
+// Part One : run original program
+
 const program = reader(filename);
-// console.log(pgm);
-const [status, result] = exec(program);
+// do not trust the exec to not alter the program
+const [status, result] = exec(_.cloneDeep(program));
 console.log("first result:", status, result);
+assert(result, 1489);
+
+// Part Two : alter the program NOP <-> JMP
 
 let tries = 0;
 for (let p=0; p<program.length; p++) {
     const { op } = program[p];
-    if (op == 'nop' || op == 'jmp') {
+    if (op == NOP || op == JMP) {
         tries += 1;
         const copy = _.cloneDeep(program);
-        copy[p].op = op == 'nop' ? 'jmp' : 'nop';
-        const [state, res] = exec(copy);
+        copy[p].op = op == NOP ? JMP : NOP;
+        const [status, result] = exec(copy);
         // console.log(cnt, p, "altered result:", state, res);
-        if (state == true) {
-            console.log(tries, "program finished with res=", res)
-            assert(res, 1539); // post hoc confirmation
+        if (status == true) {
+            console.log(tries, "program finished with", status, result)
+            assert(result, 1539); // post hoc confirmation
             break;
         }
     }
